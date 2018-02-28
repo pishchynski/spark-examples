@@ -1,5 +1,6 @@
 import org.apache.spark.sql.expressions.Window
-import org.apache.spark.sql.{DataFrame, SparkSession, functions}
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.{DataFrame, SparkSession}
 
 object EShopExample {
   def main(args: Array[String]): Unit = {
@@ -44,12 +45,12 @@ object EShopExample {
       .option("password", "123123")
       .load
 
-    val orderAggProductsDF = orderItemDF.groupBy("product_id").agg(functions.sum("quantity").alias("full_quantity"))
+    val orderAggProductsDF = orderItemDF.groupBy("product_id").agg(sum("quantity").alias("full_quantity"))
     val productsCategoriesDF = orderAggProductsDF.join(productDF, Seq("product_id"), "inner")
 
     val preparedDF = productsCategoriesDF
-      .withColumn("sum_price", functions.round(productsCategoriesDF.col("full_quantity") * productsCategoriesDF.col("product_price"), 2))
-      .select("category_id", "product_id", "product_name", "sum_price").sort(functions.asc("category_id"), functions.desc("sum_price"))
+      .withColumn("sum_price", round(productsCategoriesDF.col("full_quantity") * productsCategoriesDF.col("product_price"), 2))
+      .select("category_id", "product_id", "product_name", "sum_price").sort(asc("category_id"), desc("sum_price"))
 
     preparedDF
   }
@@ -59,14 +60,14 @@ object EShopExample {
       .partitionBy(df.col("category_id"))
       .orderBy(df.col("sum_price").desc)
 
-    val ranks = functions.dense_rank().over(windowSpec)
+    val ranks = dense_rank().over(windowSpec)
 
     val dfWithRanksDF = df.withColumn("ranks", ranks)
 
     val topsDF = dfWithRanksDF
       .select("category_id", "product_id", "product_name", "sum_price")
       .where(dfWithRanksDF.col("ranks") <= topNum)
-      .sort(functions.asc("category_id"), functions.desc("sum_price"))
+      .sort(asc("category_id"), desc("sum_price"))
     topsDF.show
   }
 }
