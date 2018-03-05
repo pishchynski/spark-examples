@@ -11,9 +11,24 @@ object GSMCalls {
       .getOrCreate()
 
     val callsDF = getCallsDF(spark)
+    saveToParquet(callsDF)
+    val callsParqDF = getCallsParquetDF(spark)
 
     topOutgoingParties(5, callsDF)
+    topOutgoingParties(3, callsParqDF)
 
+  }
+
+  def saveToParquet(df: DataFrame): Unit = {
+    df.write.parquet("data/calls_log_parquet")
+  }
+
+  def getCallsParquetDF(spark: SparkSession): DataFrame = {
+    val callsDF = spark
+      .read
+      .parquet("data/calls_log_parquet")
+
+    callsDF
   }
 
   def getCallsDF(spark: SparkSession): DataFrame = {
